@@ -5,22 +5,14 @@ class Solution {
 
     public static void main(String[] args) {
         Solution s = new Solution();
-        int[][] flights = new int[14][3];
-        flights[0] = new int[]{0, 3, 3};
-        flights[1] = new int[]{3, 4, 3};
-        flights[2] = new int[]{4, 1, 3};
-        flights[3] = new int[]{0, 5, 1};
-        flights[4] = new int[]{5, 1, 100};
-        flights[5] = new int[]{0, 6, 2};
-        flights[6] = new int[]{6, 1, 100};
-        flights[7] = new int[]{0, 7, 1};
-        flights[8] = new int[]{7, 8, 1};
-        flights[9] = new int[]{8, 9, 1};
-        flights[10] = new int[]{9, 1, 1};
-        flights[11] = new int[]{1, 10, 1};
-        flights[12] = new int[]{10, 2, 1};
-        flights[13] = new int[]{1, 2, 100};
-        int totalPrice = s.findCheapestPrice(11, flights, 0, 2, 4);
+        int[][] flights = new int[6][3];
+        flights[0] = new int[]{0, 1, 5};
+        flights[1] = new int[]{1, 2, 5};
+        flights[2] = new int[]{0, 3, 2};
+        flights[3] = new int[]{3, 1, 2};
+        flights[4] = new int[]{1, 4, 1};
+        flights[5] = new int[]{4, 2, 1};
+        int totalPrice = s.findCheapestPrice(5, flights, 0, 2, 2);
         System.out.println("需要付费金额为：" + totalPrice);
     }
 
@@ -45,17 +37,17 @@ class Solution {
         Queue<Integer> discovery = new LinkedList<>();
         // src 到各个城市的最低票价+换乘数（由于有可能有多种方案，这里每个节点由列表呈现）
         Map<Integer, List<Triple>> minWeights = new HashMap<>(3);
-        addNextCitiesToMinWeights(minWeights, n, map, src, null, discovery, discoveryPaths);
+        addNextCitiesToMinWeights(minWeights, n, k, map, src, dst, null, discovery, discoveryPaths);
         do {
             List<Triple> cheapestList = minWeights.values().stream()
                     .flatMap(Collection::stream)
                     .filter(triple -> discovery.contains(triple.city))
                     .filter(triple -> triple.stops < k)
                     .collect(Collectors.toList());
-            cheapestList.parallelStream().forEach(
+            cheapestList.forEach(
                     triple -> {
                         discovery.remove(triple.city);
-                        addNextCitiesToMinWeights(minWeights, n, map, src, triple, discovery, discoveryPaths);
+                        addNextCitiesToMinWeights(minWeights, n, k, map, src, dst, triple, discovery, discoveryPaths);
                     }
             );
             if (cheapestList.isEmpty()) {
@@ -74,18 +66,20 @@ class Solution {
      * @param src            起点
      * @param curr           当前节点
      */
-    private void addNextCitiesToMinWeights(Map<Integer, List<Triple>> minWeights, int n, int[][] flights, int src, Triple curr, Queue<Integer> discovery, Set<String> discoveryPaths) {
+    private void addNextCitiesToMinWeights(Map<Integer, List<Triple>> minWeights, int n, int k, int[][] flights, int src, int dst, Triple curr, Queue<Integer> discovery, Set<String> discoveryPaths) {
         int currCity = Objects.isNull(curr) ? src : curr.city;
         for (int i = 0; i < n; i++) {
             if (i != currCity) {
                 if (flights[currCity][i] > 0 && i != src) {
-                    addToDiscoveryList(discovery, curr, i, discoveryPaths);
-                    if (Objects.isNull(curr)) {
-                        List<String> initChain = new ArrayList<>();
-                        initChain.add(String.valueOf(i));
-                        appendMinWeight(i, Triple.of(i, flights[currCity][i], 0, initChain), minWeights);
-                    } else {
-                        appendMinWeight(i, Triple.of(i, flights[curr.city][i] + curr.price, curr.stops + 1, curr.buildNewChain(i)), minWeights);
+                    boolean isOk = addToDiscoveryList(discovery, curr, i, k, dst, discoveryPaths);
+                    if (isOk) {
+                        if (Objects.isNull(curr)) {
+                            List<String> initChain = new ArrayList<>();
+                            initChain.add(String.valueOf(i));
+                            appendMinWeight(i, Triple.of(i, flights[currCity][i], 0, initChain), minWeights);
+                        } else {
+                            appendMinWeight(i, Triple.of(i, flights[curr.city][i] + curr.price, curr.stops + 1, curr.buildNewChain(i)), minWeights);
+                        }
                     }
                 }
             }
@@ -120,23 +114,42 @@ class Solution {
         return -1;
     }
 
-    private void addToDiscoveryList(Queue<Integer> discovery, Triple curr, int tar, Set<String> discoveryPaths) {
+    /**
+     * 加入节点发现队列，注意要打破循环链路
+     *
+     * @param discovery
+     * @param curr
+     * @param tar
+     * @param discoveryPaths
+     * @return
+     */
+    private boolean addToDiscoveryList(Queue<Integer> discovery, Triple curr, int tar, int k, int dst, Set<String> discoveryPaths) {
+        int chainStops;
         String path;
+        boolean finished = Objects.nonNull(curr) ?
+                curr.chain.contains(String.valueOf(dst)) :
+                tar == dst;
         if (Objects.nonNull(curr)) {
             List<String> chain = new ArrayList<>(curr.chain);
             chain.add(String.valueOf(tar));
             path = pathToString(chain);
+            chainStops = chain.size();
         } else {
             path = String.valueOf(tar);
+            chainStops = 1;
         }
-        if (!discoveryPaths.contains(path)) {
+        int threshold = tar == dst ? k + 1 : k;
+        if (!finished && chainStops <= threshold && !discoveryPaths.contains(path)) {
             discovery.add(tar);
             discoveryPaths.add(path);
+            System.out.println("addToDiscoveryList path:" + path);
+            return true;
         }
+        return false;
     }
 
     private String pathToString(List<String> path) {
-        return String.join(",", path);
+        return String.join("->", path);
     }
 
     static class Triple {
@@ -159,8 +172,9 @@ class Solution {
         }
 
         public List<String> buildNewChain(int tar) {
-            chain.add(String.valueOf(tar));
-            return chain;
+            List<String> copy = new ArrayList<>(chain);
+            copy.add(String.valueOf(tar));
+            return copy;
         }
 
         @Override
