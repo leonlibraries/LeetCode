@@ -17,7 +17,7 @@ class Solution {
      * 利用 Dijkstra 算法计算最便宜的航班路线
      *
      * @param n       n个城市 (base0)
-     * @param flights 航班信息 from,to => price
+     * @param flights 航班信息 [[from,to,price],[from2,to2,price2]] 二维数组
      * @param src     出发地
      * @param dst     目的地
      * @param k       最大k次换乘
@@ -29,76 +29,88 @@ class Solution {
         for (int[] flight : flights) {
             map[flight[0]][flight[1]] = flight[2];
         }
-        // 取当前 minWeight 最小值
-        Map<Integer, Tuple<Integer, Integer>> finished = new HashMap<>(3);
-        // src 到各个城市的最低票价
-        Map<Integer, Tuple<Integer, Integer>> minWeight = new HashMap<>(3);
-        addNextCitiesToQueue(minWeight, n, map, src, src, k, finished);
-        while (!finished.containsKey(dst)) {
-            System.out.println(minWeight);
-            Optional<Map.Entry<Integer, Tuple<Integer, Integer>>> cheapest = minWeight.entrySet().stream()
-                    .filter(e -> src != e.getKey() && !finished.containsKey(e.getKey()))
-                    .min(Comparator.comparing(t -> t.getValue().price));
-            cheapest.ifPresent(entry -> {
-                finished.put(entry.getKey(), entry.getValue());
-                addNextCitiesToQueue(minWeight, n, map, src, entry.getKey(), k, finished);
-            });
-        }
-        // System.out.println(finished);
-        return Objects.nonNull(finished.get(dst)) ? finished.get(dst).price : -1;
+        // 节点发现队列
+        Queue<Integer> discovery = new LinkedList<>();
+        // src 到各个城市的最低票价+换乘数（由于有可能有多种方案，这里每个节点由列表呈现）
+        Map<Integer, List<Triple>> minWeights = new HashMap<>(3);
+        addNextCitiesToMinWeights(minWeights, n, map, src, null, discovery);
+        do {
+            System.out.println(minWeights);
+            Optional<Triple> cheapest = minWeights.values().stream()
+                    .flatMap(Collection::stream)
+                    .filter(triple -> discovery.contains(triple.city))
+                    .filter(triple -> triple.stops < k)
+                    .min(Comparator.comparingInt(o -> o.price));
+            if (!cheapest.isPresent()) {
+                break;
+            }
+            Triple triple = cheapest.get();
+            discovery.remove(triple.city);
+            addNextCitiesToMinWeights(minWeights, n, map, src, triple, discovery);
+        } while (!discovery.isEmpty());
+        System.out.println(minWeights);
+        return theCheapestPrice(minWeights, dst);
     }
 
     /**
      * 把当前节点指向的下一个节点集合加入到 FIFO
      *
-     * @param minWeight      minWeightMap(city->price,stops)
+     * @param minWeights     minWeightMap(city->price,stops)
      * @param n              n 一共n个城市
      * @param flights        航班信息
      * @param src            起点
      * @param curr           当前节点
-     * @param k              最大换乘数
-     * @param finished       已经标记完成的集合
      */
-    private void addNextCitiesToQueue(Map<Integer, Tuple<Integer, Integer>> minWeight, int n, int[][] flights, int src, int curr, int k, Map<Integer, Tuple<Integer, Integer>> finished) {
-        // src -> curr 的 minWeight
-        Tuple<Integer, Integer> currMinWeight = minWeight.get(curr);
+    private void addNextCitiesToMinWeights(Map<Integer, List<Triple>> minWeights, int n, int[][] flights, int src, Triple curr, Queue<Integer> discovery) {
+        int currCity = Objects.isNull(curr) ? src : curr.city;
         for (int i = 0; i < n; i++) {
-            if (i != curr && !finished.containsKey(i)) {
-                if (flights[curr][i] > 0 && i != src) {
-                    if (src == curr) {
-                        minWeight.put(i, Tuple.of(flights[curr][i], 0));
+            if (i != currCity) {
+                if (flights[currCity][i] > 0 && i != src) {
+                    discovery.add(i);
+                    if (Objects.isNull(curr)) {
+                        appendMinWeight(i, Triple.of(i, flights[currCity][i], 0), minWeights);
                     } else {
-                        // src -> i    的 minWeight （可能为空）
-                        Tuple<Integer, Integer> oldMinWeight = minWeight.get(i);
-                        Tuple<Integer, Integer> newMinWeight;
-                        assert currMinWeight != null;
-                        if (Objects.nonNull(oldMinWeight)) {
-                            if (flights[curr][i] + currMinWeight.price < oldMinWeight.price) {
-                                // 出现更优惠的价格并且换乘数可以接受的情况下
-                                newMinWeight = Tuple.of(flights[curr][i] + currMinWeight.price, currMinWeight.stops + 1);
-                            } else {
-                                newMinWeight = oldMinWeight;
-                            }
-                        } else {
-                            // 没有旧值
-                            newMinWeight = Tuple.of(flights[curr][i] + currMinWeight.price, currMinWeight.stops + 1);
-                        }
-                        minWeight.put(i, newMinWeight);
+                        appendMinWeight(i, Triple.of(i, flights[curr.city][i] + curr.price, curr.stops + 1), minWeights);
                     }
-
                 }
             }
         }
     }
 
-    static class Tuple<K, V> {
+    private void appendMinWeight(int city, Triple triple, Map<Integer, List<Triple>> minWeight) {
+        List<Triple> list = minWeight.get(city);
+        if (list == null) {
+            list = new ArrayList<>(10);
+            list.add(triple);
+            minWeight.put(city, list);
+        } else {
+            boolean duplicated = list.stream().anyMatch(t -> t.stops == triple.stops);
+            if (!duplicated) {
+                list.add(triple);
+            }
+        }
+    }
 
-        public K price;
+    private int theCheapestPrice(Map<Integer, List<Triple>> minWeights, int dst) {
+        List<Triple> list = minWeights.get(dst);
+        if (Objects.nonNull(list)) {
+            Optional<Triple> cheapest = list.stream().min(Comparator.comparingInt(t -> t.price));
+            return cheapest.map(triple -> triple.price).orElse(-1);
+        }
+        return -1;
+    }
 
-        public V stops;
+    static class Triple {
 
-        public static Tuple<Integer, Integer> of(int price, int stops) {
-            Tuple<Integer, Integer> tuple = new Tuple<>();
+        public int city;
+
+        public int price;
+
+        public int stops;
+
+        public static Triple of(int city, int price, int stops) {
+            Triple tuple = new Triple();
+            tuple.city = city;
             tuple.price = price;
             tuple.stops = stops;
             return tuple;
@@ -106,8 +118,9 @@ class Solution {
 
         @Override
         public String toString() {
-            return "Tuple{" +
-                    "price=" + price +
+            return "Triple{" +
+                    "city=" + city +
+                    ", price=" + price +
                     ", stops=" + stops +
                     '}';
         }
