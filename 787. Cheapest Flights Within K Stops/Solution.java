@@ -5,14 +5,11 @@ class Solution {
 
     public static void main(String[] args) {
         Solution s = new Solution();
-        int[][] flights = new int[6][3];
-        flights[0] = new int[]{0, 1, 5};
-        flights[1] = new int[]{1, 2, 5};
-        flights[2] = new int[]{0, 3, 2};
-        flights[3] = new int[]{3, 1, 2};
-        flights[4] = new int[]{1, 4, 1};
-        flights[5] = new int[]{4, 2, 1};
-        int totalPrice = s.findCheapestPrice(5, flights, 0, 2, 2);
+        int[][] flights = new int[3][3];
+        flights[0] = new int[]{0, 1, 100};
+        flights[1] = new int[]{1, 2, 100};
+        flights[2] = new int[]{0, 2, 500};
+        int totalPrice = s.findCheapestPrice(3, flights, 0, 2, 0);
         System.out.println("需要付费金额为：" + totalPrice);
     }
 
@@ -126,9 +123,7 @@ class Solution {
     private boolean addToDiscoveryList(Queue<Integer> discovery, Triple curr, int tar, int k, int dst, Set<String> discoveryPaths) {
         int chainStops;
         String path;
-        boolean finished = Objects.nonNull(curr) ?
-                curr.chain.contains(String.valueOf(dst)) :
-                tar == dst;
+        boolean finished = Objects.nonNull(curr) && curr.chain.contains(String.valueOf(dst));
         if (Objects.nonNull(curr)) {
             List<String> chain = new ArrayList<>(curr.chain);
             chain.add(String.valueOf(tar));
@@ -136,7 +131,7 @@ class Solution {
             chainStops = chain.size();
         } else {
             path = String.valueOf(tar);
-            chainStops = 1;
+            chainStops = 0;
         }
         int threshold = tar == dst ? k + 1 : k;
         if (!finished && chainStops <= threshold && !discoveryPaths.contains(path)) {
