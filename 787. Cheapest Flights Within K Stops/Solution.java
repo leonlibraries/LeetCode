@@ -2,14 +2,36 @@ import java.util.*;
 
 class Solution {
 
+    private final static Set<String> DISCOVERY_TMP = new HashSet<>(3);
+
     public static void main(String[] args) {
         Solution s = new Solution();
-        int[][] flights = new int[4][3];
-        flights[0] = new int[]{0, 1, 1};
-        flights[1] = new int[]{0, 2, 5};
-        flights[2] = new int[]{1, 2, 1};
-        flights[3] = new int[]{2, 3, 1};
-        int totalPrice = s.findCheapestPrice(4, flights, 0, 3, 1);
+        int[][] flights = new int[24][3];
+        flights[0] = new int[]{3, 4, 4};
+        flights[1] = new int[]{2, 5, 6};
+        flights[2] = new int[]{4, 7, 10};
+        flights[3] = new int[]{9, 6, 5};
+        flights[4] = new int[]{7, 4, 4};
+        flights[5] = new int[]{6, 2, 10};
+        flights[6] = new int[]{6, 8, 6};
+        flights[7] = new int[]{7, 9, 4};
+        flights[8] = new int[]{1, 5, 4};
+        flights[9] = new int[]{1, 0, 4};
+        flights[10] = new int[]{9, 7, 3};
+        flights[11] = new int[]{7, 0, 5};
+        flights[12] = new int[]{6, 5, 8};
+        flights[13] = new int[]{1, 7, 6};
+        flights[14] = new int[]{4, 0, 9};
+        flights[15] = new int[]{5, 9, 1};
+        flights[16] = new int[]{8, 7, 3};
+        flights[17] = new int[]{1, 2, 6};
+        flights[18] = new int[]{4, 1, 5};
+        flights[19] = new int[]{5, 2, 4};
+        flights[20] = new int[]{1, 9, 1};
+        flights[21] = new int[]{7, 8, 10};
+        flights[22] = new int[]{0, 4, 2};
+        flights[23] = new int[]{7, 2, 8};
+        int totalPrice = s.findCheapestPrice(10, flights, 6, 0, 7);
         System.out.println("需要付费金额为：" + totalPrice);
     }
 
@@ -66,7 +88,7 @@ class Solution {
         for (int i = 0; i < n; i++) {
             if (i != currCity) {
                 if (flights[currCity][i] > 0 && i != src) {
-                    discovery.add(i);
+                    addToDiscoveryList(discovery, currCity, i);
                     if (Objects.isNull(curr)) {
                         appendMinWeight(i, Triple.of(i, flights[currCity][i], 0), minWeights);
                     } else {
@@ -84,8 +106,13 @@ class Solution {
             list.add(triple);
             minWeight.put(city, list);
         } else {
-            boolean duplicated = list.stream().anyMatch(t -> t.stops == triple.stops);
-            if (!duplicated) {
+            Optional<Triple> replica = list.stream().filter(t -> t.stops == triple.stops).findAny();
+            if (replica.isPresent()) {
+                Triple r = replica.get();
+                if (triple.price < r.price) {
+                    r.price = triple.price;
+                }
+            } else {
                 list.add(triple);
             }
         }
@@ -98,6 +125,14 @@ class Solution {
             return cheapest.map(triple -> triple.price).orElse(-1);
         }
         return -1;
+    }
+
+    private void addToDiscoveryList(Queue<Integer> discovery, int from, int tar) {
+        String tmpVal = String.format("%s-%s", from, tar);
+        if (!DISCOVERY_TMP.contains(tmpVal)) {
+            discovery.add(tar);
+            DISCOVERY_TMP.add(tmpVal);
+        }
     }
 
     static class Triple {
