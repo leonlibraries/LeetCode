@@ -1,20 +1,20 @@
 import java.util.*;
-import java.util.stream.Collectors;
 
 class Solution {
 
     public static void main(String[] args) {
         Solution s = new Solution();
-        int[][] flights = new int[3][3];
-        flights[0] = new int[]{0, 1, 100};
-        flights[1] = new int[]{1, 2, 100};
-        flights[2] = new int[]{0, 2, 500};
-        int totalPrice = s.findCheapestPrice(3, flights, 0, 2, 0);
+        int[][] flights = new int[4][3];
+        flights[0] = new int[]{0, 1, 1};
+        flights[1] = new int[]{0, 2, 5};
+        flights[2] = new int[]{1, 2, 1};
+        flights[3] = new int[]{2, 3, 1};
+        int totalPrice = s.findCheapestPrice(4, flights, 0, 3, 1);
         System.out.println("需要付费金额为：" + totalPrice);
     }
 
     /**
-     * 利用 Dijkstra 算法计算最便宜的航班路线
+     * 动态规划算法计算最便宜的航班路线
      *
      * @param n       n个城市 (base0)
      * @param flights 航班信息 [[from,to,price],[from2,to2,price2]] 二维数组
@@ -29,28 +29,14 @@ class Solution {
         for (int[] flight : flights) {
             map[flight[0]][flight[1]] = flight[2];
         }
-        // 节点发现队列
-        Set<String> discoveryPaths = new HashSet<>();
-        Queue<Integer> discovery = new LinkedList<>();
         // src 到各个城市的最低票价+换乘数（由于有可能有多种方案，这里每个节点由列表呈现）
-        Map<Integer, List<Triple>> minWeights = new HashMap<>(3);
-        addNextCitiesToMinWeights(minWeights, n, k, map, src, dst, null, discovery, discoveryPaths);
-        do {
-            List<Triple> cheapestList = minWeights.values().stream()
-                    .flatMap(Collection::stream)
-                    .filter(triple -> discovery.contains(triple.city))
-                    .filter(triple -> triple.stops < k)
-                    .collect(Collectors.toList());
-            cheapestList.forEach(
-                    triple -> {
-                        discovery.remove(triple.city);
-                        addNextCitiesToMinWeights(minWeights, n, k, map, src, dst, triple, discovery, discoveryPaths);
-                    }
-            );
-            if (cheapestList.isEmpty()) {
-                break;
-            }
-        } while (!discovery.isEmpty());
+        Map<Integer, Node> minWeights = new HashMap<>(3);
+        Queue<Node> workQueue = new LinkedList<>();
+        workQueue.add(Node.of(src, 0, 0));
+        while (!workQueue.isEmpty()) {
+            Node curr = workQueue.poll();
+            addNextCitiesToMinWeights(minWeights, workQueue, map, k, curr);
+        }
         return theCheapestPrice(minWeights, dst);
     }
 
@@ -58,96 +44,33 @@ class Solution {
      * 把当前节点指向的下一个节点集合加入到 FIFO
      *
      * @param minWeights     minWeightMap(city->price,stops)
-     * @param n              n 一共n个城市
      * @param flights        航班信息
-     * @param src            起点
+     * @param k              最大换乘数
      * @param curr           当前节点
      */
-    private void addNextCitiesToMinWeights(Map<Integer, List<Triple>> minWeights, int n, int k, int[][] flights, int src, int dst, Triple curr, Queue<Integer> discovery, Set<String> discoveryPaths) {
-        int currCity = Objects.isNull(curr) ? src : curr.city;
-        for (int i = 0; i < n; i++) {
-            if (i != currCity) {
-                if (flights[currCity][i] > 0 && i != src) {
-                    boolean isOk = addToDiscoveryList(discovery, curr, i, k, dst, discoveryPaths);
-                    if (isOk) {
-                        if (Objects.isNull(curr)) {
-                            List<String> initChain = new ArrayList<>();
-                            initChain.add(String.valueOf(i));
-                            appendMinWeight(i, Triple.of(i, flights[currCity][i], 0, initChain), minWeights);
-                        } else {
-                            appendMinWeight(i, Triple.of(i, flights[curr.city][i] + curr.price, curr.stops + 1, curr.buildNewChain(i)), minWeights);
-                        }
-                    }
-                }
+    private void addNextCitiesToMinWeights(Map<Integer, Node> minWeights, Queue<Node> workQueue, int[][] flights, int k, Node curr) {
+        for (int i = 0; i < flights[curr.city].length; i++) {
+            int currStops = curr.stops;
+            int currPrice = curr.price;
+            Node tar = minWeights.get(i);
+            int tarPrice = Objects.nonNull(tar) ? tar.price : Integer.MAX_VALUE;
+            if (flights[curr.city][i] > 0 && currStops <= k && flights[curr.city][i] + currPrice < tarPrice) {
+                Node tarNode = Node.of(i, flights[curr.city][i] + currPrice, currStops + 1);
+                minWeights.put(i, tarNode);
+                workQueue.add(tarNode);
             }
         }
     }
 
-    private void appendMinWeight(int city, Triple triple, Map<Integer, List<Triple>> minWeight) {
-        List<Triple> list = minWeight.get(city);
-        if (list == null) {
-            list = new ArrayList<>(10);
-            list.add(triple);
-            minWeight.put(city, list);
-        } else {
-            Optional<Triple> replica = list.stream().filter(t -> t.stops == triple.stops).findAny();
-            if (replica.isPresent()) {
-                Triple r = replica.get();
-                if (triple.price < r.price) {
-                    r.price = triple.price;
-                }
-            } else {
-                list.add(triple);
-            }
-        }
-    }
-
-    private int theCheapestPrice(Map<Integer, List<Triple>> minWeights, int dst) {
-        List<Triple> list = minWeights.get(dst);
-        if (Objects.nonNull(list)) {
-            Optional<Triple> cheapest = list.stream().min(Comparator.comparingInt(t -> t.price));
-            return cheapest.map(triple -> triple.price).orElse(-1);
+    private int theCheapestPrice(Map<Integer, Node> minWeights, int dst) {
+        Node node = minWeights.get(dst);
+        if (Objects.nonNull(node)) {
+            return node.price;
         }
         return -1;
     }
 
-    /**
-     * 加入节点发现队列，注意要打破循环链路
-     *
-     * @param discovery
-     * @param curr
-     * @param tar
-     * @param discoveryPaths
-     * @return
-     */
-    private boolean addToDiscoveryList(Queue<Integer> discovery, Triple curr, int tar, int k, int dst, Set<String> discoveryPaths) {
-        int chainStops;
-        String path;
-        boolean finished = Objects.nonNull(curr) && curr.chain.contains(String.valueOf(dst));
-        if (Objects.nonNull(curr)) {
-            List<String> chain = new ArrayList<>(curr.chain);
-            chain.add(String.valueOf(tar));
-            path = pathToString(chain);
-            chainStops = chain.size();
-        } else {
-            path = String.valueOf(tar);
-            chainStops = 0;
-        }
-        int threshold = tar == dst ? k + 1 : k;
-        if (!finished && chainStops <= threshold && !discoveryPaths.contains(path)) {
-            discovery.add(tar);
-            discoveryPaths.add(path);
-            System.out.println("addToDiscoveryList path:" + path);
-            return true;
-        }
-        return false;
-    }
-
-    private String pathToString(List<String> path) {
-        return String.join("->", path);
-    }
-
-    static class Triple {
+    static class Node {
 
         public int city;
 
@@ -155,30 +78,20 @@ class Solution {
 
         public int stops;
 
-        public List<String> chain = new ArrayList<>(3);
-
-        public static Triple of(int city, int price, int stops, List<String> chain) {
-            Triple tuple = new Triple();
+        public static Node of(int city, int price, int stops) {
+            Node tuple = new Node();
             tuple.city = city;
             tuple.price = price;
             tuple.stops = stops;
-            tuple.chain = chain;
             return tuple;
-        }
-
-        public List<String> buildNewChain(int tar) {
-            List<String> copy = new ArrayList<>(chain);
-            copy.add(String.valueOf(tar));
-            return copy;
         }
 
         @Override
         public String toString() {
-            return "Triple{" +
+            return "Node{" +
                     "city=" + city +
                     ", price=" + price +
                     ", stops=" + stops +
-                    ", chain=" + chain +
                     '}';
         }
     }
