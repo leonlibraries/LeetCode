@@ -3,7 +3,7 @@ class Solution {
 
     public static void main(String[] args) {
 
-        int[] cost = new int[]{1, 100, 1, 1, 1, 100, 1, 1, 100, 1};
+        int[] cost = new int[]{1, 100};
         Solution s = new Solution();
         System.out.println(s.minCostClimbingStairs(cost));
     }
@@ -15,7 +15,7 @@ class Solution {
      *
      * 最小成本：f(n)= ARG min(f(n-1)+c(n-1),f(n-2)+c(n-2))
      *
-     * 先尝试用递归方式求解
+     * 这里用递归方式求解
      *
      * @param cost
      * @return
