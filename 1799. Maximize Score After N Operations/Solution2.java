@@ -24,7 +24,7 @@ public class Solution2 {
                 }
             }
         }
-        System.out.println(Arrays.toString(dp));
+        System.out.println(Arrays.toString(dp[i]));
         return dp[i][mask];
     }
 
