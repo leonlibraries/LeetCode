@@ -41,7 +41,7 @@ public class Solution {
      * max_score(n-1) = max_score(n) + n * max_gcd(x,y)
      *
      * @param dp
-     * @param n
+     * @param n      base1 的 N 值
      * @param nums
      * @return
      */
