@@ -46,10 +46,8 @@ public class Solution {
      * @return
      */
     public MaxScoreInfo maxScore(int[] dp, int n, int[] nums) {
-        int currMaxScore = dp[n];
         int[] currList = Arrays.copyOf(nums, nums.length);
-        int maxGcd = 0;
-        int xIdx = -1, yIdx = -1;
+        int maxGcd = 0, xIdx = -1, yIdx = -1;
         for (int i = 0; i < currList.length; i++) {
             int x = currList[i];
             for (int k = i + 1; k < currList.length; k++) {
@@ -62,7 +60,7 @@ public class Solution {
                 }
             }
         }
-        return MaxScoreInfo.of(xIdx, yIdx, n * maxGcd + currMaxScore);
+        return MaxScoreInfo.of(xIdx, yIdx, n * maxGcd + dp[n]);
     }
 
     private int[] removeArrayElements(int xIdx, int yIdx, int[] nums) {
