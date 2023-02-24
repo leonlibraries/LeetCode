@@ -21,6 +21,10 @@ public class Solution {
      *
      * 函数 gcd(x, y) 是 x 和 y 的最大公约数。
      *
+     * 1 <= n <= 7
+     * nums.length == 2 * n
+     * 1 <= nums[i] <= 106
+     *
      * @param nums 大小为 2 * n 的正整数数组
      * @return
      */

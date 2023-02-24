@@ -1,5 +1,3 @@
-import java.util.Arrays;
-
 public class Solution2 {
 
     public static void main(String[] args) {
@@ -17,6 +15,7 @@ public class Solution2 {
         if (dp[i][mask] == 0) {
             for (int j = 0; j < n.length; ++j) {
                 for (int k = j + 1; k < n.length; ++k) {
+                    // 这里限定了 n 的最大值为 14 ，所以才可以用 bit 作为 mask 表示 j,k 已经被选取
                     int new_mask = (1 << j) + (1 << k);
                     if ((mask & new_mask) == 0) {
                         dp[i][mask] = Math.max(dp[i][mask], i * gcd(n[j], n[k]) + dfs(n, dp, i + 1, mask + new_mask));
@@ -24,7 +23,6 @@ public class Solution2 {
                 }
             }
         }
-        System.out.println(Arrays.toString(dp[i]));
         return dp[i][mask];
     }
 
