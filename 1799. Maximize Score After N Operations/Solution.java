@@ -1,11 +1,14 @@
-import java.util.Arrays;
-
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class Solution {
 
     public static void main(String[] args) {
         Solution s = new Solution();
-        int[] nums = new int[]{415, 230, 471, 705, 902, 87};
+        // 1,4 => 3,5 => 0,2
+        int[] nums = new int[]{533593, 39242, 396330, 210143, 363784, 103836, 215757, 601236, 706901, 940118, 453982, 620138, 203549, 516268};
         System.out.println(s.maxScore(nums));
     }
 
@@ -29,54 +32,51 @@ public class Solution {
      * @return
      */
     public int maxScore(int[] nums) {
-        // 推出状态转移公式，max_score(n-1) = max_score(n) + n * max_gcd(x,y)
         int n = nums.length / 2;
-        int[] dp = new int[n + 1];
-        for (; n > 0; n--) {
-            MaxScoreInfo info = maxScore(dp, n, nums);
-            dp[n - 1] = info.currMaxScore;
-            nums = removeArrayElements(info.xIdx, info.yIdx, nums);
+        // n -> (mask->score)
+        Map<Integer, Map<Set<Integer>, Integer>> map = new HashMap<>();
+        for (int i = 1; i <= n; i++) {
+            dfs(map, i, nums);
         }
-        System.out.println(Arrays.toString(dp));
-        return dp[0];
+        return map.get(n).values().stream().findFirst().get();
     }
 
-    /**
-     * max_score(n-1) = max_score(n) + n * max_gcd(x,y)
-     *
-     * @param dp
-     * @param n      base1 的 N 值
-     * @param nums
-     * @return
-     */
-    public MaxScoreInfo maxScore(int[] dp, int n, int[] nums) {
-        int[] currList = Arrays.copyOf(nums, nums.length);
-        int maxGcd = 0, xIdx = -1, yIdx = -1;
-        for (int i = 0; i < currList.length; i++) {
-            int x = currList[i];
-            for (int k = i + 1; k < currList.length; k++) {
-                int y = currList[k];
-                int gcd = gcd(x, y);
-                if (gcd >= maxGcd) {
-                    maxGcd = gcd;
-                    xIdx = i;
-                    yIdx = k;
+
+    private void dfs(Map<Integer, Map<Set<Integer>, Integer>> map, int i, int[] nums) {
+        //上一次选择的 markScore 值
+        Map<Set<Integer>, Integer> markScore = map.get(i - 1);
+        Map<Set<Integer>, Integer> currMarkScore = new HashMap<>();
+        if (markScore == null) {
+            // first
+            for (int j = 0; j < nums.length; j++) {
+                for (int k = j + 1; k < nums.length; k++) {
+                    Set<Integer> mark = new HashSet<>();
+                    mark.add(j);
+                    mark.add(k);
+                    currMarkScore.put(mark, i * gcd(nums[j], nums[k]));
                 }
             }
+        } else {
+            markScore.forEach((key, value) -> {
+                for (int j = 0; j < nums.length; j++) {
+                    if (!key.contains(j)) {
+                        for (int k = j + 1; k < nums.length; k++) {
+                            if (!key.contains(k)) {
+                                Set<Integer> mark = new HashSet<>(key);
+                                mark.add(j);
+                                mark.add(k);
+                                int curr = currMarkScore.getOrDefault(mark, 0);
+                                int max = Math.max(value + i * gcd(nums[j], nums[k]), curr);
+                                currMarkScore.put(mark, max);
+                            }
+                        }
+                    }
+                }
+            });
         }
-        return MaxScoreInfo.of(xIdx, yIdx, n * maxGcd + dp[n]);
+        map.put(i, currMarkScore);
     }
 
-    private int[] removeArrayElements(int xIdx, int yIdx, int[] nums) {
-        int[] result = new int[nums.length - 2];
-        for (int i = 0, k = 0; i < nums.length; i++) {
-            if (xIdx == i || yIdx == i) {
-                continue;
-            }
-            result[k++] = nums[i];
-        }
-        return result;
-    }
 
     /**
      * 欧几里得算法
@@ -93,22 +93,5 @@ public class Solution {
             m = x % y;
         }
         return y;
-    }
-
-    static class MaxScoreInfo {
-
-        public int xIdx;
-
-        public int yIdx;
-
-        public int currMaxScore;
-
-        public static MaxScoreInfo of(int xIdx, int yIdx, int currMaxScore) {
-            MaxScoreInfo info = new MaxScoreInfo();
-            info.xIdx = xIdx;
-            info.yIdx = yIdx;
-            info.currMaxScore = currMaxScore;
-            return info;
-        }
     }
 }
