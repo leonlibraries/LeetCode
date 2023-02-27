@@ -1,13 +1,9 @@
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class Solution {
 
     public static void main(String[] args) {
         Solution s = new Solution();
-        // 1,4 => 3,5 => 0,2
         int[] nums = new int[]{533593, 39242, 396330, 210143, 363784, 103836, 215757, 601236, 706901, 940118, 453982, 620138, 203549, 516268};
         System.out.println(s.maxScore(nums));
     }
@@ -34,47 +30,43 @@ public class Solution {
     public int maxScore(int[] nums) {
         int n = nums.length / 2;
         // n -> (mask->score)
-        Map<Integer, Map<Set<Integer>, Integer>> map = new HashMap<>();
-        for (int i = 1; i <= n; i++) {
-            dfs(map, i, nums);
+        int[][] dp = new int[n + 1][1 << nums.length];
+        Map<Integer, Set<Integer>> maskMembers = new HashMap<>();
+        init(dp, nums, maskMembers);
+        for (int i = 2; i <= n; i++) {
+            dfs(dp, i, nums, maskMembers);
         }
-        return map.get(n).values().stream().findFirst().get();
+        return dp[n][(1 << nums.length) - 1];
     }
 
+    private void init(int[][] dp, int[] nums, Map<Integer, Set<Integer>> maskMembers) {
+        Set<Integer> members = new HashSet<>();
+        for (int j = 0; j < nums.length; j++) {
+            for (int k = j + 1; k < nums.length; k++) {
+                int mask = (1 << j) + (1 << k);
+                members.add(mask);
+                dp[1][mask] = gcd(nums[j], nums[k]);
+            }
+        }
+        maskMembers.put(1, members);
+    }
 
-    private void dfs(Map<Integer, Map<Set<Integer>, Integer>> map, int i, int[] nums) {
-        //上一次选择的 markScore 值
-        Map<Set<Integer>, Integer> markScore = map.get(i - 1);
-        Map<Set<Integer>, Integer> currMarkScore = new HashMap<>();
-        if (markScore == null) {
-            // first
+    private void dfs(int[][] dp, int i, int[] nums, Map<Integer, Set<Integer>> maskMembers) {
+        Set<Integer> lastMembers = maskMembers.get(i - 1);
+        Set<Integer> currMaskMembers = new HashSet<>();
+        for (int currMask : lastMembers) {
             for (int j = 0; j < nums.length; j++) {
                 for (int k = j + 1; k < nums.length; k++) {
-                    Set<Integer> mark = new HashSet<>();
-                    mark.add(j);
-                    mark.add(k);
-                    currMarkScore.put(mark, i * gcd(nums[j], nums[k]));
-                }
-            }
-        } else {
-            markScore.forEach((key, value) -> {
-                for (int j = 0; j < nums.length; j++) {
-                    if (!key.contains(j)) {
-                        for (int k = j + 1; k < nums.length; k++) {
-                            if (!key.contains(k)) {
-                                Set<Integer> mark = new HashSet<>(key);
-                                mark.add(j);
-                                mark.add(k);
-                                int curr = currMarkScore.getOrDefault(mark, 0);
-                                int max = Math.max(value + i * gcd(nums[j], nums[k]), curr);
-                                currMarkScore.put(mark, max);
-                            }
-                        }
+                    int nMask = (1 << j) + (1 << k);
+                    if ((currMask & nMask) == 0) {
+                        int mask = currMask + nMask;
+                        currMaskMembers.add(mask);
+                        dp[i][mask] = Math.max(i * gcd(nums[j], nums[k]) + dp[i - 1][currMask], dp[i][mask]);
                     }
                 }
-            });
+            }
         }
-        map.put(i, currMarkScore);
+        maskMembers.put(i, currMaskMembers);
     }
 
 
