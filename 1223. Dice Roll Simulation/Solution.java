@@ -1,11 +1,11 @@
 class Solution {
 
-    private static final long MOD = 10_000_000_000L + 7;
+    private static final long MOD = 1_000_000_000L + 7;
 
     public static void main(String[] args) {
         Solution s = new Solution();
-        int n = 2;
-        int[] rollMax = new int[]{1, 1, 2, 2, 2, 3};
+        int n = 30;
+        int[] rollMax = new int[]{2, 3, 1, 2, 1, 2};
         s.dieSimulator(n, rollMax);
     }
 
@@ -24,7 +24,7 @@ class Solution {
      * @return
      */
     public int dieSimulator(int n, int[] rollMax) {
-        int[][] dp = new int[7][n + 1];
+        long[][] dp = new long[7][n + 1];
         init(dp);
         for (int i = 1; i < n; i++) {
             dp = dfs(dp, n, rollMax);
@@ -34,17 +34,51 @@ class Solution {
         return sum;
     }
 
-    private void init(int[][] dp) {
+    private void init(long[][] dp) {
         for (int j = 1; j <= 6; j++) {
             dp[j][1] = 1;
         }
     }
 
-    private int[][] dfs(int[][] dp, int n, int[] rollMax) {
-        int[][] newDp = new int[7][n + 1];
+    /**
+     * 我们假设 0<k<N
+     *
+     *
+     * 设第 k 次 摇骰子函数 U(x,y) 次数
+     *
+     * 第一次       第二次
+     *
+     * U(1,1)=1 => U(1,2) x (假设 rollMax[1]=1)
+     * 			U(2,1) 1
+     * 			U(3,1) 1
+     * 			U(4,1) 1
+     * 			U(5,1) 1
+     * 			U(6,1) 1
+     *
+     * U(2,1)=1 => U(1,1) 1
+     *             U(2,2) x  (假设 rollMax[2]=1)
+     *             U(3,1) 1 （和上面合并）
+     *             U(4,1) 1 （和上面合并）
+     *             U(5,1) 1 （和上面合并）
+     *             U(6,1) 1
+     *
+     *
+     *
+     * U(3,1)=1  ...
+     * U(4,1)=1  ...
+     * U(5,1)=1  ...
+     * U(6,1)=1  ...
+     *
+     * @param dp
+     * @param n
+     * @param rollMax
+     * @return
+     */
+    private long[][] dfs(long[][] dp, int n, int[] rollMax) {
+        long[][] newDp = new long[7][n + 1];
         // j=最近出现的number k=number重复次数
         for (int j = 1; j <= 6; j++) {
-            int[] fn = dp[j];
+            long[] fn = dp[j];
             for (int k = 1; k < fn.length; k++) {
                 if (fn[k] > 0) {
                     // split
@@ -55,21 +89,24 @@ class Solution {
         return newDp;
     }
 
-    private void split(int[][] dp, int lastNum, int lastRepeat, int p, int[] rollMax) {
+    private void split(long[][] dp, int lastNum, int lastRepeat, long p, int[] rollMax) {
         boolean noRepeat = lastRepeat >= rollMax[lastNum - 1];
         for (int j = 1; j <= 6; j++) {
             if (j == lastNum) {
                 dp[j][lastRepeat + 1] += noRepeat ? 0 : p;
+                dp[j][lastRepeat + 1] = dp[j][lastRepeat + 1] % MOD;
             } else {
                 dp[j][1] += p;
+                dp[j][1] = dp[j][1] % MOD;
             }
+
         }
     }
 
-    private long sum(int[][] dp) {
+    private long sum(long[][] dp) {
         long sum = 0L;
-        for (int[] item : dp) {
-            for (int value : item) {
+        for (long[] item : dp) {
+            for (long value : item) {
                 sum += value;
             }
         }
