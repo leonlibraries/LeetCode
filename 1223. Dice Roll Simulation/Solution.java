@@ -1,6 +1,13 @@
 class Solution {
 
-    private final int mod = 10 ^ 9 + 7;
+    private static final long MOD = 10_000_000_000L + 7;
+
+    public static void main(String[] args) {
+        Solution s = new Solution();
+        int n = 2;
+        int[] rollMax = new int[]{1, 1, 2, 2, 2, 3};
+        s.dieSimulator(n, rollMax);
+    }
 
     /**
      * 有一个骰子模拟器会每次投掷的时候生成一个 1 到 6 的随机数。
@@ -17,9 +24,55 @@ class Solution {
      * @return
      */
     public int dieSimulator(int n, int[] rollMax) {
+        int[][] dp = new int[7][n + 1];
+        init(dp);
+        for (int i = 1; i < n; i++) {
+            dp = dfs(dp, n, rollMax);
+        }
+        int sum = (int) (sum(dp) % MOD);
+        System.out.println("sum=" + sum);
+        return sum;
+    }
 
-        int[][] dp = new int[n][];
+    private void init(int[][] dp) {
+        for (int j = 1; j <= 6; j++) {
+            dp[j][1] = 1;
+        }
+    }
 
-        return 0;
+    private int[][] dfs(int[][] dp, int n, int[] rollMax) {
+        int[][] newDp = new int[7][n + 1];
+        // j=最近出现的number k=number重复次数
+        for (int j = 1; j <= 6; j++) {
+            int[] fn = dp[j];
+            for (int k = 1; k < fn.length; k++) {
+                if (fn[k] > 0) {
+                    // split
+                    split(newDp, j, k, fn[k], rollMax);
+                }
+            }
+        }
+        return newDp;
+    }
+
+    private void split(int[][] dp, int lastNum, int lastRepeat, int p, int[] rollMax) {
+        boolean noRepeat = lastRepeat >= rollMax[lastNum - 1];
+        for (int j = 1; j <= 6; j++) {
+            if (j == lastNum) {
+                dp[j][lastRepeat + 1] += noRepeat ? 0 : p;
+            } else {
+                dp[j][1] += p;
+            }
+        }
+    }
+
+    private long sum(int[][] dp) {
+        long sum = 0L;
+        for (int[] item : dp) {
+            for (int value : item) {
+                sum += value;
+            }
+        }
+        return sum;
     }
 }
