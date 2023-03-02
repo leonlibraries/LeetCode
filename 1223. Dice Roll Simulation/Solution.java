@@ -6,7 +6,7 @@ class Solution {
         Solution s = new Solution();
         int n = 30;
         int[] rollMax = new int[]{2, 3, 1, 2, 1, 2};
-        s.dieSimulator(n, rollMax);
+        System.out.println("sum=" + s.dieSimulator(n, rollMax));
     }
 
     /**
@@ -25,19 +25,10 @@ class Solution {
      */
     public int dieSimulator(int n, int[] rollMax) {
         long[][] dp = new long[7][n + 1];
-        init(dp);
-        for (int i = 1; i < n; i++) {
-            dp = dfs(dp, n, rollMax);
+        for (int i = 0; i < n; i++) {
+            dp = bfs(dp, i, n, rollMax);
         }
-        int sum = (int) (sum(dp) % MOD);
-        System.out.println("sum=" + sum);
-        return sum;
-    }
-
-    private void init(long[][] dp) {
-        for (int j = 1; j <= 6; j++) {
-            dp[j][1] = 1;
-        }
+        return (int) (sum(dp) % MOD);
     }
 
     /**
@@ -49,11 +40,11 @@ class Solution {
      * 第一次       第二次
      *
      * U(1,1)=1 => U(1,2) x (假设 rollMax[1]=1)
-     * 			U(2,1) 1
-     * 			U(3,1) 1
-     * 			U(4,1) 1
-     * 			U(5,1) 1
-     * 			U(6,1) 1
+     * 			   U(2,1) 1
+     * 			   U(3,1) 1
+     * 			   U(4,1) 1
+     * 			   U(5,1) 1
+     * 			   U(6,1) 1
      *
      * U(2,1)=1 => U(1,1) 1
      *             U(2,2) x  (假设 rollMax[2]=1)
@@ -61,8 +52,6 @@ class Solution {
      *             U(4,1) 1 （和上面合并）
      *             U(5,1) 1 （和上面合并）
      *             U(6,1) 1
-     *
-     *
      *
      * U(3,1)=1  ...
      * U(4,1)=1  ...
@@ -74,14 +63,18 @@ class Solution {
      * @param rollMax
      * @return
      */
-    private long[][] dfs(long[][] dp, int n, int[] rollMax) {
+    private long[][] bfs(long[][] dp, int i, int n, int[] rollMax) {
+        if (i == 0) {
+            for (int j = 1; j <= 6; j++) {
+                dp[j][1] = 1;
+            }
+            return dp;
+        }
         long[][] newDp = new long[7][n + 1];
-        // j=最近出现的number k=number重复次数
         for (int j = 1; j <= 6; j++) {
             long[] fn = dp[j];
             for (int k = 1; k < fn.length; k++) {
                 if (fn[k] > 0) {
-                    // split
                     split(newDp, j, k, fn[k], rollMax);
                 }
             }
@@ -89,20 +82,34 @@ class Solution {
         return newDp;
     }
 
-    private void split(long[][] dp, int lastNum, int lastRepeat, long p, int[] rollMax) {
-        boolean noRepeat = lastRepeat >= rollMax[lastNum - 1];
+    /**
+     * 展开
+     *
+     * @param dp
+     * @param ln         lastNum
+     * @param lrt        lastRepeatTimes
+     * @param p
+     * @param rollMax
+     */
+    private void split(long[][] dp, int ln, int lrt, long p, int[] rollMax) {
+        boolean breakOut = lrt >= rollMax[ln - 1];
         for (int j = 1; j <= 6; j++) {
-            if (j == lastNum) {
-                dp[j][lastRepeat + 1] += noRepeat ? 0 : p;
-                dp[j][lastRepeat + 1] = dp[j][lastRepeat + 1] % MOD;
+            if (j == ln) {
+                dp[j][lrt + 1] += breakOut ? 0 : p;
+                dp[j][lrt + 1] = dp[j][lrt + 1] % MOD;
             } else {
                 dp[j][1] += p;
                 dp[j][1] = dp[j][1] % MOD;
             }
-
         }
     }
 
+    /**
+     * 汇总
+     *
+     * @param dp
+     * @return
+     */
     private long sum(long[][] dp) {
         long sum = 0L;
         for (long[] item : dp) {
