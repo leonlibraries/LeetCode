@@ -2,7 +2,7 @@ class Solution {
 
     public static void main(String[] args) {
         Solution s = new Solution();
-        int[] nums = new int[]{2, 3, 0, 1, 4};
+        int[] nums = new int[]{5, 6, 4, 4, 6, 9, 4, 4, 7, 4, 4, 8, 2, 6, 8, 1, 5, 9, 6, 5, 2, 7, 9, 7, 9, 6, 9, 4, 1, 6, 8, 8, 4, 4, 2, 0, 3, 8, 5};
         System.out.println(s.jump(nums));
     }
 
@@ -36,11 +36,10 @@ class Solution {
         int step = nums[curr];
         int minStep = nums.length;
         for (int s = 1; s <= step; s++) {
-            if (curr + s >= nums.length) {
-                continue;
+            if (curr + s < nums.length) {
+                int currStep = dfs(nums, curr + s) + 1;
+                minStep = Math.min(currStep, minStep);
             }
-            int currStep = dfs(nums, curr + s) + 1;
-            minStep = Math.min(currStep, minStep);
         }
         return minStep;
     }
