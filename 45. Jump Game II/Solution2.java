@@ -54,7 +54,7 @@ public class Solution2 {
     private int[] reverseJump(int[] nums, int[] currNodes) {
         List<Integer> list = new ArrayList<>(0);
         for (int node : currNodes) {
-            for (int i = 0; i < nums.length; i++) {
+            for (int i = 0; i < node; i++) {
                 if (nums[i] + i >= node) {
                     list.add(i);
                 }
