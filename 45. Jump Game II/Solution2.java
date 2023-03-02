@@ -6,7 +6,7 @@ public class Solution2 {
 
     public static void main(String[] args) {
         Solution2 s = new Solution2();
-        int[] nums = new int[]{0};
+        int[] nums = new int[]{5, 6, 4, 4, 6, 9, 4, 4, 7, 4, 4, 8, 2, 6, 8, 1, 5, 9, 6, 5, 2, 7, 9, 7, 9, 6, 9, 4, 1, 6, 8, 8, 4, 4, 2, 0, 3, 8, 5};
         System.out.println(s.jump(nums));
     }
 
@@ -44,6 +44,13 @@ public class Solution2 {
         return 0;
     }
 
+    /**
+     * 逆向思维+动态规划
+     *
+     * @param nums
+     * @param currNodes
+     * @return
+     */
     private int[] reverseJump(int[] nums, int[] currNodes) {
         List<Integer> list = new ArrayList<>(0);
         for (int node : currNodes) {

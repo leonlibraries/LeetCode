@@ -29,6 +29,13 @@ class Solution {
         return dfs(nums, 0);
     }
 
+    /**
+     * 深度优先+递归
+     *
+     * @param nums
+     * @param curr
+     * @return
+     */
     private int dfs(int[] nums, int curr) {
         if (curr == nums.length - 1) {
             return 0;
